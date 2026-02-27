@@ -24,9 +24,13 @@
       "bucket_name": "diario-audio"
     }
   ],
+  "ai": {
+    "binding": "AI"
+  },
   "vars": {
     "RESEND_FROM_EMAIL": "deadman@tu-dominio.com",
     "DEADMAN_NOTIFY_EMAILS": "",
-    "APP_URL": "https://diario.javilocarretero.workers.dev"
+    "APP_URL": "https://diario.javilocarretero.workers.dev",
+    "CF_WHISPER_MODEL": "@cf/openai/whisper"
   }
 }

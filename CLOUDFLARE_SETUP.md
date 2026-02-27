@@ -31,6 +31,9 @@ En `wrangler.jsonc`:
 - `RESEND_FROM_EMAIL`: remitente validado en Resend.
 - `DEADMAN_NOTIFY_EMAILS`: correos fallback separados por coma.
 - `APP_URL`: URL publica de tu diario.
+- `CF_WHISPER_MODEL`: modelo de Workers AI (ej. `@cf/openai/whisper`).
+
+El binding `AI` de Cloudflare se configura en `wrangler.jsonc` y no necesita API key adicional.
 
 ## 4) Deploy
 
