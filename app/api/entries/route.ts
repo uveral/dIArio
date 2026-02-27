@@ -22,51 +22,61 @@ function mapRow(row: EntryRow) {
 }
 
 export async function GET() {
-  await ensureSchema();
-  const env = await getEnv();
-  const result = await env.JOURNAL_DB.prepare(
-    "SELECT id, content, created_at, audio_key FROM entries ORDER BY created_at DESC LIMIT 200",
-  ).all();
-  const rows = (result.results ?? []) as EntryRow[];
+  try {
+    await ensureSchema();
+    const env = await getEnv();
+    const result = await env.JOURNAL_DB.prepare(
+      "SELECT id, content, created_at, audio_key FROM entries ORDER BY created_at DESC LIMIT 200",
+    ).all();
+    const rows = (result.results ?? []) as EntryRow[];
 
-  return NextResponse.json({ entries: rows.map(mapRow) });
+    return NextResponse.json({ entries: rows.map(mapRow) });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "entries_get_failed";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
-  await ensureSchema();
-  const env = await getEnv();
-  const body = (await req.json()) as {
-    content?: string;
-    audioKey?: string | null;
-    audioDurationSec?: number | null;
-  };
+  try {
+    await ensureSchema();
+    const env = await getEnv();
+    const body = (await req.json()) as {
+      content?: string;
+      audioKey?: string | null;
+      audioDurationSec?: number | null;
+    };
 
-  const content = (body.content ?? "").trim();
-  const audioKey = body.audioKey ?? null;
-  const audioDurationSec =
-    typeof body.audioDurationSec === "number" ? Math.max(0, Math.floor(body.audioDurationSec)) : null;
+    const content = (body.content ?? "").trim();
+    const audioKey = body.audioKey ?? null;
+    const audioDurationSec =
+      typeof body.audioDurationSec === "number" ? Math.max(0, Math.floor(body.audioDurationSec)) : null;
 
-  if (!content && !audioKey) {
-    return NextResponse.json(
-      { error: "Debes enviar texto o audio." },
-      { status: 400 },
-    );
+    if (!content && !audioKey) {
+      return NextResponse.json(
+        { error: "Debes enviar texto o audio." },
+        { status: 400 },
+      );
+    }
+
+    const id = crypto.randomUUID();
+    const createdAt = Date.now();
+    await env.JOURNAL_DB.prepare(
+      "INSERT INTO entries (id, content, created_at, audio_key, audio_duration_sec) VALUES (?, ?, ?, ?, ?)",
+    )
+      .bind(id, content, createdAt, audioKey, audioDurationSec)
+      .run();
+
+    const row: EntryRow = {
+      id,
+      content,
+      created_at: createdAt,
+      audio_key: audioKey,
+    };
+
+    return NextResponse.json({ entry: mapRow(row) }, { status: 201 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "entries_post_failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const id = crypto.randomUUID();
-  const createdAt = Date.now();
-  await env.JOURNAL_DB.prepare(
-    "INSERT INTO entries (id, content, created_at, audio_key, audio_duration_sec) VALUES (?, ?, ?, ?, ?)",
-  )
-    .bind(id, content, createdAt, audioKey, audioDurationSec)
-    .run();
-
-  const row: EntryRow = {
-    id,
-    content,
-    created_at: createdAt,
-    audio_key: audioKey,
-  };
-
-  return NextResponse.json({ entry: mapRow(row) }, { status: 201 });
 }

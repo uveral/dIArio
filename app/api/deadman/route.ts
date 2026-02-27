@@ -48,43 +48,53 @@ async function getOrCreateSettings() {
 }
 
 export async function GET() {
-  const { row } = await getOrCreateSettings();
-  const now = Date.now();
-  const elapsedHours = (now - row.last_check_in_ts) / 3600000;
-  const remainingHours = Math.max(0, row.check_in_hours - elapsedHours);
-  const state =
-    remainingHours <= 0 ? "triggered" : remainingHours <= row.warning_hours ? "warning" : "armed";
+  try {
+    const { row } = await getOrCreateSettings();
+    const now = Date.now();
+    const elapsedHours = (now - row.last_check_in_ts) / 3600000;
+    const remainingHours = Math.max(0, row.check_in_hours - elapsedHours);
+    const state =
+      remainingHours <= 0 ? "triggered" : remainingHours <= row.warning_hours ? "warning" : "armed";
 
-  return NextResponse.json({
-    state,
-    remainingHours,
-    settings: {
-      checkInHours: row.check_in_hours,
-      warningHours: row.warning_hours,
-      lastCheckInTs: row.last_check_in_ts,
-      ownerEmail: row.owner_email,
-      notifyEmails: parseEmails(row.notify_emails),
-      lastNotifiedStage: row.last_notified_stage,
-    },
-  });
+    return NextResponse.json({
+      state,
+      remainingHours,
+      settings: {
+        checkInHours: row.check_in_hours,
+        warningHours: row.warning_hours,
+        lastCheckInTs: row.last_check_in_ts,
+        ownerEmail: row.owner_email,
+        notifyEmails: parseEmails(row.notify_emails),
+        lastNotifiedStage: row.last_notified_stage,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "deadman_get_failed";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function PUT(req: Request) {
-  const { env, row } = await getOrCreateSettings();
-  const body = (await req.json()) as {
-    ownerEmail?: string;
-    notifyEmails?: string[];
-  };
-  const ownerEmail = (body.ownerEmail ?? row.owner_email).trim();
-  const notifyEmails = Array.isArray(body.notifyEmails)
-    ? body.notifyEmails.map((x) => x.trim()).filter(Boolean)
-    : parseEmails(row.notify_emails);
+  try {
+    const { env, row } = await getOrCreateSettings();
+    const body = (await req.json()) as {
+      ownerEmail?: string;
+      notifyEmails?: string[];
+    };
+    const ownerEmail = (body.ownerEmail ?? row.owner_email).trim();
+    const notifyEmails = Array.isArray(body.notifyEmails)
+      ? body.notifyEmails.map((x) => x.trim()).filter(Boolean)
+      : parseEmails(row.notify_emails);
 
-  await env.JOURNAL_DB.prepare(
-    "UPDATE deadman_settings SET owner_email = ?, notify_emails = ? WHERE id = 1",
-  )
-    .bind(ownerEmail, notifyEmails.join(","))
-    .run();
+    await env.JOURNAL_DB.prepare(
+      "UPDATE deadman_settings SET owner_email = ?, notify_emails = ? WHERE id = 1",
+    )
+      .bind(ownerEmail, notifyEmails.join(","))
+      .run();
 
-  return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "deadman_put_failed";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

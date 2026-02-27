@@ -11,6 +11,11 @@ export type CloudflareEnv = {
 };
 
 export async function getEnv() {
-  const ctx = await getCloudflareContext({ async: true });
-  return ctx.env as CloudflareEnv;
+  try {
+    const ctx = await getCloudflareContext({ async: true });
+    return ctx.env as CloudflareEnv;
+  } catch {
+    const ctx = getCloudflareContext();
+    return ctx.env as CloudflareEnv;
+  }
 }
