@@ -10,5 +10,22 @@
   },
   "observability": {
     "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "JOURNAL_DB",
+      "database_name": "diario-db",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "JOURNAL_AUDIO_BUCKET",
+      "bucket_name": "diario-audio"
+    }
+  ],
+  "vars": {
+    "RESEND_FROM_EMAIL": "deadman@tu-dominio.com",
+    "DEADMAN_NOTIFY_EMAILS": ""
   }
 }

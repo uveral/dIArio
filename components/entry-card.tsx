@@ -10,18 +10,20 @@ type EntryCardProps = {
 };
 
 export function EntryCard({ entry }: EntryCardProps) {
+  const date = new Date(entry.date);
+
   return (
     <Card className="rounded-2xl bg-zinc-900/45 backdrop-blur-xl">
       <CardHeader className="pb-2">
         <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-zinc-300">
           <span>
-            {format(entry.date, "EEEE, d 'de' MMMM", {
+            {format(date, "EEEE, d 'de' MMMM", {
               locale: es,
             })}
           </span>
           <span className="inline-flex items-center gap-1.5 text-zinc-500">
             <Clock3 className="h-3.5 w-3.5" />
-            {format(entry.date, "HH:mm")}
+            {format(date, "HH:mm")}
           </span>
         </CardTitle>
       </CardHeader>

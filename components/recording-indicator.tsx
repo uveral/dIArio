@@ -1,6 +1,6 @@
 "use client";
 
-import { Mic, Pause, Square } from "lucide-react";
+import { Check, Mic, Square } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -78,8 +78,8 @@ export function RecordingIndicator({
             onClick={onStop}
             className="h-11 rounded-xl bg-zinc-100 text-zinc-900 hover:bg-white active:scale-[0.98]"
           >
-            <Pause className="mr-2 h-4 w-4" />
-            Pausar
+            <Check className="mr-2 h-4 w-4" />
+            Guardar audio
           </Button>
         </div>
       </CardContent>

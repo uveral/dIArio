@@ -19,6 +19,7 @@ import type { DeadManState } from "@/lib/types";
 type DeadmanStatusProps = {
   state: DeadManState;
   remainingHours: number;
+  totalHours: number;
   lastCheckIn: Date;
   onCheckIn: () => void;
 };
@@ -47,6 +48,7 @@ const STATE_UI = {
 export function DeadmanStatus({
   state,
   remainingHours,
+  totalHours,
   lastCheckIn,
   onCheckIn,
 }: DeadmanStatusProps) {
@@ -97,7 +99,9 @@ export function DeadmanStatus({
                     : "bg-emerald-400",
               )}
               initial={{ width: 0 }}
-              animate={{ width: `${Math.max(0, Math.min(100, (remainingHours / 36) * 100))}%` }}
+              animate={{
+                width: `${Math.max(0, Math.min(100, (remainingHours / totalHours) * 100))}%`,
+              }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             />
           </div>
