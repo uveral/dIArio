@@ -36,7 +36,7 @@ export async function ensureSchema() {
   await runSql(
     "CREATE TABLE IF NOT EXISTS deadman_settings (id INTEGER PRIMARY KEY CHECK (id = 1), check_in_hours INTEGER NOT NULL DEFAULT 720, warning_hours INTEGER NOT NULL DEFAULT 168, last_check_in_ts INTEGER NOT NULL, notify_emails TEXT NOT NULL DEFAULT '', owner_email TEXT NOT NULL DEFAULT '', last_notified_stage INTEGER NOT NULL DEFAULT 0, last_notified_ts INTEGER)",
   );
-  await runSql(
+  await addColumnIfMissing(
     "ALTER TABLE deadman_settings ADD COLUMN owner_email TEXT NOT NULL DEFAULT ''",
   );
   await addColumnIfMissing(
