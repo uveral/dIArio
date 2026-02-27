@@ -13,8 +13,13 @@ async function addColumnIfMissing(sql: string) {
   try {
     await env.JOURNAL_DB.prepare(sql).run();
   } catch (error) {
-    const message = error instanceof Error ? error.message.toLowerCase() : "";
-    if (!message.includes("duplicate column name")) {
+    const message = String(
+      error instanceof Error ? error.message : error,
+    ).toLowerCase();
+    if (
+      !message.includes("duplicate column name") &&
+      !message.includes("already exists")
+    ) {
       throw error;
     }
   }
