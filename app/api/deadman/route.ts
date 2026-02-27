@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ensureSchema } from "@/lib/server/db";
 import { getEnv } from "@/lib/server/cloudflare-env";
 
 type DeadmanRow = {
@@ -17,6 +18,7 @@ function parseEmails(value: string | null | undefined) {
 }
 
 async function getOrCreateSettings() {
+  await ensureSchema();
   const env = await getEnv();
   let result = await env.JOURNAL_DB.prepare(
     "SELECT check_in_hours, warning_hours, last_check_in_ts, notify_emails FROM deadman_settings WHERE id = 1",

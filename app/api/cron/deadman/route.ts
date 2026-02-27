@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ensureSchema } from "@/lib/server/db";
 import { getEnv } from "@/lib/server/cloudflare-env";
 
 type Row = {
@@ -37,6 +38,7 @@ async function sendResendEmail(params: {
 }
 
 export async function POST(req: Request) {
+  await ensureSchema();
   const env = await getEnv();
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
 

@@ -29,6 +29,7 @@ export default function Page() {
   const [saving, setSaving] = useState(false);
   const [content, setContent] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [deadman, setDeadman] = useState<DeadmanApiResponse | null>(null);
   const [notifyEmailsInput, setNotifyEmailsInput] = useState("");
@@ -43,15 +44,26 @@ export default function Page() {
     [entries],
   );
 
+  const safeJson = async <T,>(res: Response): Promise<T> => {
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(text || `HTTP ${res.status}`);
+    }
+    if (!text) {
+      throw new Error("Respuesta vacia del servidor.");
+    }
+    return JSON.parse(text) as T;
+  };
+
   const refreshEntries = async () => {
     const res = await fetch("/api/entries", { cache: "no-store" });
-    const data = (await res.json()) as { entries: JournalEntry[] };
+    const data = await safeJson<{ entries: JournalEntry[] }>(res);
     setEntries(data.entries ?? []);
   };
 
   const refreshDeadman = async () => {
     const res = await fetch("/api/deadman", { cache: "no-store" });
-    const data = (await res.json()) as DeadmanApiResponse;
+    const data = await safeJson<DeadmanApiResponse>(res);
     setDeadman(data);
     setNotifyEmailsInput((data.settings.notifyEmails ?? []).join(", "));
   };
@@ -59,7 +71,12 @@ export default function Page() {
   useEffect(() => {
     void (async () => {
       setLoading(true);
-      await Promise.all([refreshEntries(), refreshDeadman()]);
+      try {
+        await Promise.all([refreshEntries(), refreshDeadman()]);
+        setErrorMsg(null);
+      } catch (error) {
+        setErrorMsg(error instanceof Error ? error.message : "Error cargando datos.");
+      }
       setLoading(false);
     })();
   }, []);
@@ -80,9 +97,15 @@ export default function Page() {
       body: JSON.stringify({ content: text }),
     });
     setSaving(false);
-    if (!res.ok) return;
+    if (!res.ok) {
+      const body = await res.text();
+      setErrorMsg(body || "No se pudo guardar el texto.");
+      return;
+    }
     setContent("");
-    await refreshEntries();
+    await refreshEntries().catch((e: unknown) =>
+      setErrorMsg(e instanceof Error ? e.message : "No se pudo refrescar la lista."),
+    );
   };
 
   const startRecording = async () => {
@@ -118,13 +141,14 @@ export default function Page() {
     form.append("file", blob, `recording-${Date.now()}.webm`);
     const uploadRes = await fetch("/api/audio", { method: "POST", body: form });
     if (!uploadRes.ok) {
+      setErrorMsg("Fallo al subir el audio.");
       setIsRecording(false);
       setSeconds(0);
       return;
     }
 
-    const upload = (await uploadRes.json()) as { key: string };
-    await fetch("/api/entries", {
+    const upload = await safeJson<{ key: string }>(uploadRes);
+    const saveRes = await fetch("/api/entries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -133,10 +157,16 @@ export default function Page() {
         audioDurationSec: seconds,
       }),
     });
+    if (!saveRes.ok) {
+      const body = await saveRes.text();
+      setErrorMsg(body || "Fallo al guardar la entrada de audio.");
+    }
 
     setIsRecording(false);
     setSeconds(0);
-    await refreshEntries();
+    await refreshEntries().catch((e: unknown) =>
+      setErrorMsg(e instanceof Error ? e.message : "No se pudo refrescar la lista."),
+    );
   };
 
   const discardRecording = () => {
@@ -157,7 +187,7 @@ export default function Page() {
       .map((x) => x.trim())
       .filter(Boolean);
 
-    await fetch("/api/deadman", {
+    const res = await fetch("/api/deadman", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -166,12 +196,25 @@ export default function Page() {
         notifyEmails,
       }),
     });
-    await refreshDeadman();
+    if (!res.ok) {
+      const body = await res.text();
+      setErrorMsg(body || "No se pudieron guardar los ajustes.");
+      return;
+    }
+    await refreshDeadman().catch((e: unknown) =>
+      setErrorMsg(e instanceof Error ? e.message : "No se pudo refrescar ajustes."),
+    );
   };
 
   const checkIn = async () => {
-    await fetch("/api/deadman/check-in", { method: "POST" });
-    await refreshDeadman();
+    const res = await fetch("/api/deadman/check-in", { method: "POST" });
+    if (!res.ok) {
+      setErrorMsg("No se pudo confirmar presencia.");
+      return;
+    }
+    await refreshDeadman().catch((e: unknown) =>
+      setErrorMsg(e instanceof Error ? e.message : "No se pudo refrescar estado."),
+    );
   };
 
   return (
@@ -197,6 +240,11 @@ export default function Page() {
 
         <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
           <section className="space-y-4">
+            {errorMsg ? (
+              <Card className="rounded-2xl border-rose-700/50 bg-rose-950/30">
+                <CardContent className="p-3 text-sm text-rose-200">{errorMsg}</CardContent>
+              </Card>
+            ) : null}
             <div className="flex items-center gap-2 px-1 text-xs uppercase tracking-[0.2em] text-zinc-500">
               <StickyNote className="h-3.5 w-3.5" />
               Nueva entrada

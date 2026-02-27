@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ensureSchema } from "@/lib/server/db";
 import { getEnv } from "@/lib/server/cloudflare-env";
 
 type EntryRow = {
@@ -21,6 +22,7 @@ function mapRow(row: EntryRow) {
 }
 
 export async function GET() {
+  await ensureSchema();
   const env = await getEnv();
   const result = await env.JOURNAL_DB.prepare(
     "SELECT id, content, created_at, audio_key FROM entries ORDER BY created_at DESC LIMIT 200",
@@ -31,6 +33,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  await ensureSchema();
   const env = await getEnv();
   const body = (await req.json()) as {
     content?: string;

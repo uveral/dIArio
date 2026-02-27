@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { ensureSchema } from "@/lib/server/db";
 import { getEnv } from "@/lib/server/cloudflare-env";
 
 export async function POST() {
+  await ensureSchema();
   const env = await getEnv();
   const now = Date.now();
 
