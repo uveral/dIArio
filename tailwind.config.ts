@@ -25,7 +25,7 @@ const config: Config = {
         glass: "0 8px 40px rgba(0, 0, 0, 0.35)",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "Inter", "sans-serif"],
+        sans: ["var(--font-inter)", "Inter", "sans-serif"],
       },
     },
   },
