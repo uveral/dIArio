@@ -127,25 +127,36 @@ export default function Page() {
   const stopAndSaveRecording = async () => {
     const recorder = recorderRef.current;
     if (!recorder) return;
+    const recordedSeconds = seconds;
     await new Promise<void>((resolve) => {
       recorder.onstop = () => resolve();
       recorder.stop();
       recorder.stream.getTracks().forEach((track) => track.stop());
     });
+    setIsRecording(false);
+    setSeconds(0);
+
     const blob = new Blob(chunksRef.current, { type: "audio/webm" });
     if (blob.size === 0) {
-      setIsRecording(false);
-      setSeconds(0);
       return;
     }
+
+    const tempId = `pending-${crypto.randomUUID()}`;
+    const tempEntry: JournalEntry = {
+      id: tempId,
+      content: "Procesando audio...",
+      date: new Date().toISOString(),
+      createdAtTs: Date.now(),
+      isPendingTranscription: true,
+    };
+    setEntries((prev) => [tempEntry, ...prev]);
 
     const form = new FormData();
     form.append("file", blob, `recording-${Date.now()}.webm`);
     const uploadRes = await fetch("/api/audio", { method: "POST", body: form });
     if (!uploadRes.ok) {
       setErrorMsg("Fallo al subir el audio.");
-      setIsRecording(false);
-      setSeconds(0);
+      setEntries((prev) => prev.filter((entry) => entry.id !== tempId));
       return;
     }
 
@@ -156,12 +167,13 @@ export default function Page() {
       body: JSON.stringify({
         content: "",
         audioKey: upload.key,
-        audioDurationSec: seconds,
+        audioDurationSec: recordedSeconds,
       }),
     });
     if (!saveRes.ok) {
       const body = await saveRes.text();
       setErrorMsg(body || "Fallo al guardar la entrada de audio.");
+      setEntries((prev) => prev.filter((entry) => entry.id !== tempId));
     } else {
       const saved = await safeJson<{
         transcription?: { ok: boolean; model: string; textLength: number; error?: string };
@@ -172,10 +184,8 @@ export default function Page() {
           `Transcripcion vacia (${saved.transcription.model}): ${saved.transcription.error ?? "sin detalle"}`,
         );
       }
+      setEntries((prev) => prev.filter((entry) => entry.id !== tempId));
     }
-
-    setIsRecording(false);
-    setSeconds(0);
     await refreshEntries().catch((e: unknown) =>
       setErrorMsg(e instanceof Error ? e.message : "No se pudo refrescar la lista."),
     );

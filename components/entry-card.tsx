@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { AudioLines, Clock3 } from "lucide-react";
+import { AudioLines, Clock3, Loader2 } from "lucide-react";
 
 import type { JournalEntry } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,12 @@ export function EntryCard({ entry }: EntryCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-4 pt-0">
+        {entry.isPendingTranscription ? (
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-700/70 bg-zinc-800/50 px-3 py-1 text-xs text-zinc-300">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Cargando transcripcion...
+          </div>
+        ) : null}
         <p className="text-sm leading-relaxed text-zinc-200/95">{entry.content}</p>
 
         {entry.audioUrl ? (

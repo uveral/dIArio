@@ -5,6 +5,7 @@ export type JournalEntry = {
   createdAtTs: number;
   audioUrl?: string;
   audioKey?: string | null;
+  isPendingTranscription?: boolean;
 };
 
 export type DeadManState = "armed" | "warning" | "triggered";
