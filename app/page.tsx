@@ -39,8 +39,6 @@ export default function Page() {
   const [seconds, setSeconds] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const speechRef = useRef<any>(null);
-  const transcriptRef = useRef("");
 
   const sorted = useMemo(
     () => [...entries].sort((a, b) => b.createdAtTs - a.createdAtTs),
@@ -121,30 +119,6 @@ export default function Page() {
     };
     recorderRef.current = recorder;
     recorder.start(400);
-    transcriptRef.current = "";
-
-    const SpeechRecognitionCtor =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognitionCtor) {
-      try {
-        const recognition = new SpeechRecognitionCtor();
-        recognition.lang = "es-ES";
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.onresult = (event: any) => {
-          let allText = "";
-          for (let i = 0; i < event.results.length; i += 1) {
-            const text = event.results[i][0]?.transcript ?? "";
-            allText += ` ${text}`;
-          }
-          transcriptRef.current = allText.trim();
-        };
-        recognition.start();
-        speechRef.current = recognition;
-      } catch {
-        setErrorMsg("No se pudo iniciar la transcripcion en este navegador.");
-      }
-    }
 
     setSeconds(0);
     setIsRecording(true);
@@ -158,11 +132,6 @@ export default function Page() {
       recorder.stop();
       recorder.stream.getTracks().forEach((track) => track.stop());
     });
-    if (speechRef.current) {
-      speechRef.current.stop();
-      speechRef.current = null;
-    }
-
     const blob = new Blob(chunksRef.current, { type: "audio/webm" });
     if (blob.size === 0) {
       setIsRecording(false);
@@ -185,7 +154,7 @@ export default function Page() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        content: transcriptRef.current || "Entrada de voz",
+        content: "",
         audioKey: upload.key,
         audioDurationSec: seconds,
       }),
@@ -193,6 +162,16 @@ export default function Page() {
     if (!saveRes.ok) {
       const body = await saveRes.text();
       setErrorMsg(body || "Fallo al guardar la entrada de audio.");
+    } else {
+      const saved = await safeJson<{
+        transcription?: { ok: boolean; model: string; textLength: number; error?: string };
+      }>(saveRes);
+      console.debug("[transcription]", saved.transcription);
+      if (saved.transcription && !saved.transcription.ok) {
+        setErrorMsg(
+          `Transcripcion vacia (${saved.transcription.model}): ${saved.transcription.error ?? "sin detalle"}`,
+        );
+      }
     }
 
     setIsRecording(false);
@@ -209,10 +188,6 @@ export default function Page() {
       recorder.stream.getTracks().forEach((track) => track.stop());
     }
     chunksRef.current = [];
-    if (speechRef.current) {
-      speechRef.current.stop();
-      speechRef.current = null;
-    }
     setIsRecording(false);
     setSeconds(0);
   };

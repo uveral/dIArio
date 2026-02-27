@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { ensureSchema } from "@/lib/server/db";
 import { getEnv } from "@/lib/server/cloudflare-env";
+import { transcribeAudioFromR2 } from "@/lib/server/transcribe";
 
 type EntryRow = {
   id: string;
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
       audioDurationSec?: number | null;
     };
 
-    const content = (body.content ?? "").trim();
+    let content = (body.content ?? "").trim();
     const audioKey = body.audioKey ?? null;
     const audioDurationSec =
       typeof body.audioDurationSec === "number" ? Math.max(0, Math.floor(body.audioDurationSec)) : null;
@@ -57,6 +58,14 @@ export async function POST(req: Request) {
         { error: "Debes enviar texto o audio." },
         { status: 400 },
       );
+    }
+
+    let transcriptionDebug: unknown = null;
+    if (!content && audioKey) {
+      const transcription = await transcribeAudioFromR2(audioKey);
+      const transcript = transcription.text;
+      transcriptionDebug = transcription.debug;
+      content = transcript || "Entrada de voz";
     }
 
     const id = crypto.randomUUID();
@@ -74,7 +83,10 @@ export async function POST(req: Request) {
       audio_key: audioKey,
     };
 
-    return NextResponse.json({ entry: mapRow(row) }, { status: 201 });
+    return NextResponse.json(
+      { entry: mapRow(row), transcription: transcriptionDebug },
+      { status: 201 },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "entries_post_failed";
     return NextResponse.json({ error: message }, { status: 500 });
