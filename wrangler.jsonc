@@ -31,6 +31,6 @@
     "RESEND_FROM_EMAIL": "deadman@tu-dominio.com",
     "DEADMAN_NOTIFY_EMAILS": "",
     "APP_URL": "https://diario.javilocarretero.workers.dev",
-    "CF_WHISPER_MODEL": "@cf/openai/whisper"
+    "CF_WHISPER_MODEL": "@cf/openai/whisper-large-v3-turbo"
   }
 }

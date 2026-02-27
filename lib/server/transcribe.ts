@@ -13,17 +13,23 @@ export async function transcribeAudioFromR2(audioKey: string) {
   if (!object) return "";
 
   const audioBuffer = await new Response(object.body).arrayBuffer();
-  const audioBase64 = Buffer.from(audioBuffer).toString("base64");
-  const model = env.CF_WHISPER_MODEL || "@cf/openai/whisper";
+  const model = env.CF_WHISPER_MODEL || "@cf/openai/whisper-large-v3-turbo";
 
   try {
-    const result = (await env.AI.run(model, {
-      audio: audioBase64,
-      language: "es",
-      task: "transcribe",
-    })) as CloudflareTranscriptionResponse;
+    const input = model.includes("whisper-large-v3-turbo")
+      ? {
+          audio: Buffer.from(audioBuffer).toString("base64"),
+          language: "es",
+          task: "transcribe",
+        }
+      : {
+          audio: [...new Uint8Array(audioBuffer)],
+        };
+
+    const result = (await env.AI.run(model, input)) as CloudflareTranscriptionResponse;
     return (result?.text ?? "").trim();
-  } catch {
+  } catch (error) {
+    console.error("Transcription error:", error);
     return "";
   }
 }
