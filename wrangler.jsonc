@@ -15,7 +15,7 @@
     {
       "binding": "JOURNAL_DB",
       "database_name": "diario-db",
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+      "database_id": "4b7d5f81-0108-45da-a791-3880bbe9669d"
     }
   ],
   "r2_buckets": [
