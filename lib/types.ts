@@ -13,5 +13,7 @@ export type DeadmanSettings = {
   checkInHours: number;
   warningHours: number;
   lastCheckInTs: number;
+  ownerEmail: string;
   notifyEmails: string[];
+  lastNotifiedStage: number;
 };

@@ -33,11 +33,14 @@ export default function Page() {
 
   const [deadman, setDeadman] = useState<DeadmanApiResponse | null>(null);
   const [notifyEmailsInput, setNotifyEmailsInput] = useState("");
+  const [ownerEmailInput, setOwnerEmailInput] = useState("");
 
   const [isRecording, setIsRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const speechRef = useRef<any>(null);
+  const transcriptRef = useRef("");
 
   const sorted = useMemo(
     () => [...entries].sort((a, b) => b.createdAtTs - a.createdAtTs),
@@ -66,6 +69,7 @@ export default function Page() {
     const data = await safeJson<DeadmanApiResponse>(res);
     setDeadman(data);
     setNotifyEmailsInput((data.settings.notifyEmails ?? []).join(", "));
+    setOwnerEmailInput(data.settings.ownerEmail ?? "");
   };
 
   useEffect(() => {
@@ -117,6 +121,27 @@ export default function Page() {
     };
     recorderRef.current = recorder;
     recorder.start(400);
+    transcriptRef.current = "";
+
+    const SpeechRecognitionCtor =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognitionCtor) {
+      const recognition = new SpeechRecognitionCtor();
+      recognition.lang = "es-ES";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onresult = (event: any) => {
+        let finalText = transcriptRef.current;
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const text = event.results[i][0]?.transcript ?? "";
+          if (event.results[i].isFinal) finalText += ` ${text}`;
+        }
+        transcriptRef.current = finalText.trim();
+      };
+      recognition.start();
+      speechRef.current = recognition;
+    }
+
     setSeconds(0);
     setIsRecording(true);
   };
@@ -129,6 +154,10 @@ export default function Page() {
       recorder.stop();
       recorder.stream.getTracks().forEach((track) => track.stop());
     });
+    if (speechRef.current) {
+      speechRef.current.stop();
+      speechRef.current = null;
+    }
 
     const blob = new Blob(chunksRef.current, { type: "audio/webm" });
     if (blob.size === 0) {
@@ -152,7 +181,7 @@ export default function Page() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        content: "",
+        content: transcriptRef.current || "Entrada de voz (sin transcripcion).",
         audioKey: upload.key,
         audioDurationSec: seconds,
       }),
@@ -176,6 +205,10 @@ export default function Page() {
       recorder.stream.getTracks().forEach((track) => track.stop());
     }
     chunksRef.current = [];
+    if (speechRef.current) {
+      speechRef.current.stop();
+      speechRef.current = null;
+    }
     setIsRecording(false);
     setSeconds(0);
   };
@@ -191,8 +224,7 @@ export default function Page() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        checkInHours: deadman.settings.checkInHours,
-        warningHours: deadman.settings.warningHours,
+        ownerEmail: ownerEmailInput.trim(),
         notifyEmails,
       }),
     });
@@ -323,48 +355,20 @@ export default function Page() {
                     </CardHeader>
                     <CardContent className="space-y-3 pt-0">
                       <label className="block text-xs text-zinc-400">
-                        Horas maximas sin check-in
+                        Tu email (avisos mes 1 a 5)
                         <input
-                          type="number"
-                          min={1}
-                          value={deadman.settings.checkInHours}
-                          onChange={(e) =>
-                            setDeadman((prev) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    settings: {
-                                      ...prev.settings,
-                                      checkInHours: Number(e.target.value || 1),
-                                    },
-                                  }
-                                : prev,
-                            )
-                          }
+                          type="email"
+                          value={ownerEmailInput}
+                          onChange={(e) => setOwnerEmailInput(e.target.value)}
                           className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950/70 px-2 py-2 text-sm"
                         />
                       </label>
                       <label className="block text-xs text-zinc-400">
-                        Horas de advertencia
-                        <input
-                          type="number"
-                          min={1}
-                          value={deadman.settings.warningHours}
-                          onChange={(e) =>
-                            setDeadman((prev) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    settings: {
-                                      ...prev.settings,
-                                      warningHours: Number(e.target.value || 1),
-                                    },
-                                  }
-                                : prev,
-                            )
-                          }
-                          className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950/70 px-2 py-2 text-sm"
-                        />
+                        Politica de seguridad
+                        <p className="mt-1 rounded-lg border border-zinc-800 bg-zinc-950/70 px-2 py-2 text-sm text-zinc-300">
+                          Si no hay actividad en 1 mes: email 1. Luego un email cada mes hasta 6.
+                          En el mes 6 se envia acceso web a los correos destino.
+                        </p>
                       </label>
                       <label className="block text-xs text-zinc-400">
                         Correos destino (separados por coma)

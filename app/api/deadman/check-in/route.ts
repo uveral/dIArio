@@ -9,7 +9,7 @@ export async function POST() {
   const now = Date.now();
 
   await env.JOURNAL_DB.prepare(
-    "UPDATE deadman_settings SET last_check_in_ts = ? WHERE id = 1",
+    "UPDATE deadman_settings SET last_check_in_ts = ?, last_notified_stage = 0, last_notified_ts = NULL WHERE id = 1",
   )
     .bind(now)
     .run();

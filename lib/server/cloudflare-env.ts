@@ -7,6 +7,7 @@ export type CloudflareEnv = {
   RESEND_API_KEY?: string;
   RESEND_FROM_EMAIL?: string;
   DEADMAN_NOTIFY_EMAILS?: string;
+  APP_URL?: string;
 };
 
 export async function getEnv() {

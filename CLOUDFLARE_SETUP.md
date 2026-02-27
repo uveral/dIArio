@@ -30,6 +30,7 @@ npx wrangler secret put CRON_SECRET
 En `wrangler.jsonc`:
 - `RESEND_FROM_EMAIL`: remitente validado en Resend.
 - `DEADMAN_NOTIFY_EMAILS`: correos fallback separados por coma.
+- `APP_URL`: URL publica de tu diario.
 
 ## 4) Deploy
 
@@ -47,4 +48,8 @@ Opciones:
 - Cloudflare Worker cron secundario (recomendado) que haga `fetch()` a esa ruta.
 - O un scheduler externo (EasyCron, cron-job.org, GitHub Actions).
 
-Frecuencia sugerida: cada 15 minutos.
+Frecuencia sugerida: cada 24h (la logica escala por meses).
+
+Politica implementada:
+- Mes 1 a 5 sin actividad: envia recordatorio a `owner_email` (configurable desde ajustes).
+- Mes 6 sin actividad: envia el enlace de la web a los correos configurados.

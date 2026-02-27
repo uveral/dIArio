@@ -26,6 +26,7 @@
   ],
   "vars": {
     "RESEND_FROM_EMAIL": "deadman@tu-dominio.com",
-    "DEADMAN_NOTIFY_EMAILS": ""
+    "DEADMAN_NOTIFY_EMAILS": "",
+    "APP_URL": "https://diario.javilocarretero.workers.dev"
   }
 }
