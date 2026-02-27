@@ -126,20 +126,24 @@ export default function Page() {
     const SpeechRecognitionCtor =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognitionCtor) {
-      const recognition = new SpeechRecognitionCtor();
-      recognition.lang = "es-ES";
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.onresult = (event: any) => {
-        let finalText = transcriptRef.current;
-        for (let i = event.resultIndex; i < event.results.length; i += 1) {
-          const text = event.results[i][0]?.transcript ?? "";
-          if (event.results[i].isFinal) finalText += ` ${text}`;
-        }
-        transcriptRef.current = finalText.trim();
-      };
-      recognition.start();
-      speechRef.current = recognition;
+      try {
+        const recognition = new SpeechRecognitionCtor();
+        recognition.lang = "es-ES";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = (event: any) => {
+          let allText = "";
+          for (let i = 0; i < event.results.length; i += 1) {
+            const text = event.results[i][0]?.transcript ?? "";
+            allText += ` ${text}`;
+          }
+          transcriptRef.current = allText.trim();
+        };
+        recognition.start();
+        speechRef.current = recognition;
+      } catch {
+        setErrorMsg("No se pudo iniciar la transcripcion en este navegador.");
+      }
     }
 
     setSeconds(0);
@@ -181,7 +185,7 @@ export default function Page() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        content: transcriptRef.current || "Entrada de voz (sin transcripcion).",
+        content: transcriptRef.current || "Entrada de voz",
         audioKey: upload.key,
         audioDurationSec: seconds,
       }),
