@@ -32,11 +32,6 @@ export async function ensureSchema() {
     "CREATE TABLE IF NOT EXISTS deadman_settings (id INTEGER PRIMARY KEY CHECK (id = 1), check_in_hours INTEGER NOT NULL DEFAULT 720, warning_hours INTEGER NOT NULL DEFAULT 168, last_check_in_ts INTEGER NOT NULL, notify_emails TEXT NOT NULL DEFAULT '', owner_email TEXT NOT NULL DEFAULT '', last_notified_stage INTEGER NOT NULL DEFAULT 0, last_notified_ts INTEGER)",
   );
   await runSql(
-    "INSERT OR IGNORE INTO deadman_settings (id, check_in_hours, warning_hours, last_check_in_ts, notify_emails, owner_email, last_notified_stage, last_notified_ts) VALUES (1, 720, 168, ?, '', '', 0, NULL)",
-    [Date.now()],
-  );
-
-  await addColumnIfMissing(
     "ALTER TABLE deadman_settings ADD COLUMN owner_email TEXT NOT NULL DEFAULT ''",
   );
   await addColumnIfMissing(
@@ -44,6 +39,22 @@ export async function ensureSchema() {
   );
   await addColumnIfMissing(
     "ALTER TABLE deadman_settings ADD COLUMN last_notified_ts INTEGER",
+  );
+  await addColumnIfMissing(
+    "ALTER TABLE deadman_settings ADD COLUMN check_in_hours INTEGER NOT NULL DEFAULT 720",
+  );
+  await addColumnIfMissing(
+    "ALTER TABLE deadman_settings ADD COLUMN warning_hours INTEGER NOT NULL DEFAULT 168",
+  );
+  await addColumnIfMissing(
+    "ALTER TABLE deadman_settings ADD COLUMN notify_emails TEXT NOT NULL DEFAULT ''",
+  );
+  await addColumnIfMissing(
+    "ALTER TABLE deadman_settings ADD COLUMN last_check_in_ts INTEGER NOT NULL DEFAULT 0",
+  );
+  await runSql(
+    "INSERT OR IGNORE INTO deadman_settings (id, check_in_hours, warning_hours, last_check_in_ts, notify_emails, owner_email, last_notified_stage, last_notified_ts) VALUES (1, 720, 168, ?, '', '', 0, NULL)",
+    [Date.now()],
   );
 
   schemaReady = true;
